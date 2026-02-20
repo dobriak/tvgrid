@@ -1,0 +1,26 @@
+activePlaylist: 1mhIxzgJD7HW7yKHdr2zZ
+playlists:
+  - id: 0BqE2zd9a9BOzljmrDNOO
+    name: Default
+    icon: tv
+    streams:
+      topLeft: ''
+      topRight: ''
+      bottomLeft: ''
+      bottomRight: ''
+  - id: y14zXjF43xSFEFTSjp1GL
+    name: Finance
+    icon: dollar
+    streams:
+      topLeft:''
+      topRight: ''
+      bottomLeft: ''
+      bottomRight: ''
+  - id: 1mhIxzgJD7HW7yKHdr2zZ
+    name: News
+    icon: newspaper
+    streams:
+      topLeft: ''
+      topRight: ''
+      bottomLeft: ''
+      bottomRight: ''

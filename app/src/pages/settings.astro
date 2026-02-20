@@ -1,0 +1,139 @@
+---
+import Layout from '../layouts/main.astro';
+import Toast from '../components/Toast.astro';
+import PlaylistSidebar from '../components/PlaylistSidebar.astro';
+import PlaylistEditor from '../components/PlaylistEditor.astro';
+import { loadPlaylists } from '../lib/playlists';
+
+const config = loadPlaylists();
+const playlists = config.playlists;
+const urlPlaylistId = Astro.url.searchParams.get('playlist');
+const selectedId = urlPlaylistId || config.activePlaylist || playlists[0]?.id || null;
+const selectedPlaylist = playlists.find(p => p.id === selectedId) || null;
+---
+
+<Layout title="Settings - VidGrid">
+	<div class="max-w-6xl mx-auto p-8">
+		<h2 class="text-2xl font-bold mb-6">Stream Settings</h2>
+		
+		<div class="flex gap-6" style="height: calc(100vh - 200px);">
+			<PlaylistSidebar playlists={playlists} selectedId={selectedId} />
+			<PlaylistEditor playlist={selectedPlaylist} />
+		</div>
+	</div>
+	
+	<Toast />
+</Layout>
+
+<script>
+	interface StreamSettings {
+		topLeft: string;
+		topRight: string;
+		bottomLeft: string;
+		bottomRight: string;
+	}
+	
+	interface Playlist {
+		id: string;
+		name: string;
+		icon: string;
+		streams: StreamSettings;
+	}
+	
+	interface PlaylistsConfig {
+		activePlaylist: string;
+		playlists: Playlist[];
+	}
+	
+	let currentPlaylists: Playlist[] = [];
+	let selectedId: string | null = null;
+	
+	async function loadPlaylists(): Promise<PlaylistsConfig> {
+		const response = await fetch('/api/playlists');
+		return response.json();
+	}
+	
+	function showToast(message: string, type: 'success' | 'error') {
+		(document as any).showToast(message, type);
+	}
+	
+	async function createPlaylist() {
+		const name = prompt('Enter playlist name:');
+		if (!name) return;
+		
+		const response = await fetch('/api/playlists', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ name, icon: 'tv', streams: { topLeft: '', topRight: '', bottomLeft: '', bottomRight: '' } }),
+		});
+		
+		if (response.ok) {
+			const data = await response.json();
+			showToast('Playlist created', 'success');
+			window.location.href = `/settings?playlist=${data.id}`;
+		} else {
+			showToast('Failed to create playlist', 'error');
+		}
+	}
+	
+	async function savePlaylist(id: string) {
+		const name = (document.getElementById('playlist-name') as HTMLInputElement).value;
+		const icon = (document.getElementById('playlist-icon') as HTMLSelectElement).value;
+		const streams: StreamSettings = {
+			topLeft: (document.getElementById('topLeft') as HTMLInputElement).value,
+			topRight: (document.getElementById('topRight') as HTMLInputElement).value,
+			bottomLeft: (document.getElementById('bottomLeft') as HTMLInputElement).value,
+			bottomRight: (document.getElementById('bottomRight') as HTMLInputElement).value,
+		};
+		
+		const response = await fetch(`/api/playlists/${id}`, {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ name, icon, streams }),
+		});
+		
+		if (response.ok) {
+			showToast('Playlist saved', 'success');
+		} else {
+			showToast('Failed to save playlist', 'error');
+		}
+	}
+	
+	async function deletePlaylist(id: string) {
+		if (!confirm('Are you sure you want to delete this playlist?')) return;
+		
+		const response = await fetch(`/api/playlists/${id}`, {
+			method: 'DELETE',
+		});
+		
+		if (response.ok) {
+			showToast('Playlist deleted', 'success');
+			location.reload();
+		} else {
+			showToast('Failed to delete playlist', 'error');
+		}
+	}
+	
+	function selectPlaylist(id: string) {
+		window.location.href = `/settings?playlist=${id}`;
+	}
+	
+	document.getElementById('new-playlist-btn')?.addEventListener('click', createPlaylist);
+	
+	document.getElementById('save-btn')?.addEventListener('click', (e) => {
+		const id = (e.target as HTMLElement).dataset.id;
+		if (id) savePlaylist(id);
+	});
+	
+	document.getElementById('delete-btn')?.addEventListener('click', (e) => {
+		const id = (e.target as HTMLElement).dataset.id;
+		if (id) deletePlaylist(id);
+	});
+	
+	document.querySelectorAll('.playlist-item').forEach((item) => {
+		item.addEventListener('click', () => {
+			const id = (item as HTMLElement).dataset.id;
+			if (id) selectPlaylist(id);
+		});
+	});
+</script>

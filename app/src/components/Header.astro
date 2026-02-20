@@ -1,0 +1,44 @@
+---
+import PlaylistButtons from './PlaylistButtons.astro';
+import { loadPlaylists } from '../lib/playlists';
+
+const currentPath = Astro.url.pathname;
+
+let playlistsData: { id: string; name: string; icon: string }[] = [];
+let activePlaylistId = '';
+
+if (currentPath === '/') {
+	const config = loadPlaylists();
+	playlistsData = config.playlists.map(p => ({ id: p.id, name: p.name, icon: p.icon }));
+	activePlaylistId = config.activePlaylist;
+}
+---
+
+<header class="flex items-center justify-between px-6 py-4 bg-gray-900 text-white">
+	<div class="flex items-center gap-6">
+		<h1 class="text-xl font-bold">VidGrid</h1>
+		{currentPath === '/' && playlistsData.length > 0 && (
+			<PlaylistButtons playlists={playlistsData} activePlaylist={activePlaylistId} />
+		)}
+	</div>
+	<nav class="flex gap-6">
+		<a
+			href="/"
+			class:list={[
+				'hover:text-purple-400 transition-colors',
+				{ 'text-purple-400': currentPath === '/' }
+			]}
+		>
+			Play
+		</a>
+		<a
+			href="/settings"
+			class:list={[
+				'hover:text-purple-400 transition-colors',
+				{ 'text-purple-400': currentPath === '/settings' }
+			]}
+		>
+			Settings
+		</a>
+	</nav>
+</header>

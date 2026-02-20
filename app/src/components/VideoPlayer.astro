@@ -1,0 +1,159 @@
+---
+interface Props {
+	position: string;
+	url?: string;
+}
+const { position, url } = Astro.props;
+const hasUrl = url && url.trim() !== '';
+---
+
+<div class="video-player relative w-full h-full bg-gray-800 rounded-lg overflow-hidden" data-position={position} data-url={url || ''}>
+	<video
+		class:list={['w-full h-full object-contain', { 'hidden': !hasUrl }]}
+		muted
+		playsinline
+		controlslist="nodownload"
+	>
+	</video>
+	
+	<div class:list={['placeholder absolute inset-0 flex flex-col items-center justify-center text-gray-500', { 'hidden': hasUrl }]}>
+		<svg class="w-16 h-16 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+		</svg>
+		<span class="text-sm">No Stream Configured</span>
+	</div>
+
+	<!-- Error overlay (hidden by default) -->
+	<div class="error-overlay hidden absolute inset-0 bg-gray-900/90 flex flex-col items-center justify-center text-gray-300">
+		<svg class="w-12 h-12 mb-2 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+		</svg>
+		<span class="text-sm mb-3">Stream Unavailable</span>
+		<button class="retry-btn px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded text-sm transition-colors">
+			Retry
+		</button>
+	</div>
+
+	<!-- Hover controls hint -->
+	<div class="controls-hint absolute bottom-2 right-2 text-xs text-gray-400 opacity-0 transition-opacity pointer-events-none">
+		Hover for controls
+	</div>
+</div>
+
+<script>
+	import Hls from 'hls.js';
+
+	document.querySelectorAll('.video-player').forEach((player) => {
+		const video = player.querySelector('video') as HTMLVideoElement;
+		const placeholder = player.querySelector('.placeholder') as HTMLElement;
+		const errorOverlay = player.querySelector('.error-overlay');
+		const retryBtn = player.querySelector('.retry-btn');
+		const controlsHint = player.querySelector('.controls-hint');
+		
+		let currentHls: Hls | null = null;
+
+		function showPlaceholder() {
+			if (placeholder) placeholder.classList.remove('hidden');
+			if (video) video.classList.add('hidden');
+		}
+
+		function hidePlaceholder() {
+			if (placeholder) placeholder.classList.add('hidden');
+			if (video) video.classList.remove('hidden');
+		}
+
+		function showError() {
+			if (errorOverlay) {
+				errorOverlay.classList.remove('hidden');
+			}
+		}
+
+		function hideError() {
+			if (errorOverlay) {
+				errorOverlay.classList.add('hidden');
+			}
+		}
+
+		function initVideo(url: string) {
+			if (!video || !url) {
+				showPlaceholder();
+				return;
+			}
+
+			hideError();
+			hidePlaceholder();
+
+			// Cleanup previous HLS instance
+			if (currentHls) {
+				currentHls.destroy();
+				currentHls = null;
+			}
+
+			const isHLS = url.includes('.m3u8');
+
+			if (isHLS) {
+				if (Hls.isSupported()) {
+					currentHls = new Hls();
+					currentHls.loadSource(url);
+					currentHls.attachMedia(video);
+
+					currentHls.on(Hls.Events.ERROR, () => {
+						showError();
+					});
+
+					currentHls.on(Hls.Events.MANIFEST_PARSED, () => {
+						hideError();
+					});
+				} else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+					video.src = url;
+				}
+			} else {
+				video.src = url;
+			}
+		}
+
+		// Show controls on hover
+		player.addEventListener('mouseenter', () => {
+			if (controlsHint) {
+				controlsHint.classList.remove('opacity-0');
+				controlsHint.classList.add('opacity-100');
+			}
+			if (video) video.controls = true;
+		});
+
+		player.addEventListener('mouseleave', () => {
+			if (controlsHint) {
+				controlsHint.classList.remove('opacity-100');
+				controlsHint.classList.add('opacity-0');
+			}
+			if (video) video.controls = false;
+		});
+
+		// Handle video errors
+		if (video) {
+			video.addEventListener('error', showError);
+		}
+
+		// Retry button
+		if (retryBtn) {
+			retryBtn.addEventListener('click', (e) => {
+				e.stopPropagation();
+				const url = (player as HTMLElement).dataset.url;
+				if (url) initVideo(url);
+			});
+		}
+
+		// Listen for URL updates from VideoGrid
+		player.addEventListener('url-update', ((e: CustomEvent) => {
+			const url = e.detail.url;
+			(player as HTMLElement).dataset.url = url;
+			initVideo(url);
+		}) as EventListener);
+
+		// Initialize with current URL if present
+		const initialUrl = (player as HTMLElement).dataset.url;
+		if (initialUrl) {
+			initVideo(initialUrl);
+		}
+	});
+</script>

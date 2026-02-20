@@ -1,0 +1,39 @@
+---
+// Toast component - controlled via client-side script
+---
+
+<div
+	id="toast"
+	class="fixed bottom-6 right-6 px-4 py-3 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none"
+	data-type="success"
+>
+	<span id="toast-message"></span>
+</div>
+
+<script>
+	function showToast(message: string, type: 'success' | 'error' = 'success') {
+		const toast = document.getElementById('toast');
+		const toastMessage = document.getElementById('toast-message');
+		
+		if (!toast || !toastMessage) return;
+		
+		toastMessage.textContent = message;
+		toast.className = toast.className
+			.replace(/bg-\w+-\d+/g, '')
+			.replace('translate-y-20', 'translate-y-0')
+			.replace('opacity-0', 'opacity-100');
+		
+		if (type === 'success') {
+			toast.classList.add('bg-green-600');
+		} else {
+			toast.classList.add('bg-red-600');
+		}
+		
+		setTimeout(() => {
+			toast.classList.remove('translate-y-0', 'opacity-100');
+			toast.classList.add('translate-y-20', 'opacity-0');
+		}, 2500);
+	}
+	
+	(document as any).showToast = showToast;
+</script>

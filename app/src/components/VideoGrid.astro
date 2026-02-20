@@ -1,0 +1,83 @@
+---
+import VideoPlayer from './VideoPlayer.astro';
+
+const positions = [
+	{ key: 'topLeft', label: 'Top Left' },
+	{ key: 'topRight', label: 'Top Right' },
+	{ key: 'bottomLeft', label: 'Bottom Left' },
+	{ key: 'bottomRight', label: 'Bottom Right' },
+];
+---
+
+<div class="video-grid grid grid-cols-2 grid-rows-2 gap-2 h-full">
+	{positions.map((pos) => (
+		<div class="video-cell" data-key={pos.key}>
+			<VideoPlayer position={pos.key} />
+		</div>
+	))}
+</div>
+
+<script>
+	interface StreamSettings {
+		topLeft: string;
+		topRight: string;
+		bottomLeft: string;
+		bottomRight: string;
+	}
+	
+	interface Playlist {
+		id: string;
+		name: string;
+		icon: string;
+		streams: StreamSettings;
+	}
+	
+	interface PlaylistsConfig {
+		activePlaylist: string;
+		playlists: Playlist[];
+	}
+	
+	async function loadPlaylists(): Promise<PlaylistsConfig> {
+		try {
+			const response = await fetch('/api/playlists');
+			if (response.ok) {
+				return await response.json();
+			}
+		} catch (e) {
+			console.error('Failed to load playlists:', e);
+		}
+		return { activePlaylist: '', playlists: [] };
+	}
+	
+	function applyStreams(streams: StreamSettings) {
+		document.querySelectorAll('.video-cell').forEach((cell) => {
+			const key = (cell as HTMLElement).dataset.key as keyof StreamSettings;
+			const url = streams[key];
+			const player = cell.querySelector('.video-player');
+			
+			if (player) {
+				(player as HTMLElement).dataset.url = url || '';
+				player.dispatchEvent(new CustomEvent('url-update', { detail: { url: url || '' } }));
+			}
+		});
+	}
+	
+	function getActivePlaylist(config: PlaylistsConfig): Playlist | undefined {
+		return config.playlists.find(p => p.id === config.activePlaylist);
+	}
+	
+	loadPlaylists().then((config) => {
+		const activePlaylist = getActivePlaylist(config);
+		if (activePlaylist) {
+			applyStreams(activePlaylist.streams);
+		}
+	});
+	
+	window.addEventListener('playlist-changed', async () => {
+		const config = await loadPlaylists();
+		const activePlaylist = getActivePlaylist(config);
+		if (activePlaylist) {
+			applyStreams(activePlaylist.streams);
+		}
+	});
+</script>

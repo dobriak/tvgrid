@@ -1,0 +1,36 @@
+---
+import Icon from './Icon.astro';
+
+interface Props {
+	playlists: { id: string; name: string; icon: string }[];
+	selectedId: string | null;
+}
+
+const { playlists, selectedId } = Astro.props;
+---
+
+<div class="sidebar w-64 bg-gray-800 rounded-lg p-4 flex flex-col h-full">
+	<button
+		id="new-playlist-btn"
+		class="w-full py-2 px-4 bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold transition-colors mb-4"
+	>
+		+ New Playlist
+	</button>
+
+	<div class="playlist-list flex-1 overflow-y-auto space-y-1">
+		{playlists.map((playlist) => (
+			<button
+				class:list={[
+					'playlist-item w-full text-left px-3 py-2 rounded-lg flex items-center gap-2 transition-colors',
+					playlist.id === selectedId
+						? 'bg-purple-600 text-white'
+						: 'text-gray-300 hover:bg-gray-700',
+				]}
+				data-id={playlist.id}
+			>
+				<Icon name={playlist.icon} class="w-4 h-4" />
+				<span class="truncate">{playlist.name}</span>
+			</button>
+		))}
+	</div>
+</div>

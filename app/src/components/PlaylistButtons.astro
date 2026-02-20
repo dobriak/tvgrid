@@ -1,0 +1,54 @@
+---
+import Icon from './Icon.astro';
+
+interface Props {
+	playlists: { id: string; name: string; icon: string }[];
+	activePlaylist: string;
+}
+
+const { playlists, activePlaylist } = Astro.props;
+---
+
+<div class="playlist-buttons flex items-center gap-2 overflow-x-auto" id="playlist-buttons">
+	{playlists.map((playlist) => (
+		<button
+			class:list={[
+				'playlist-btn px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5',
+				playlist.id === activePlaylist
+					? 'bg-purple-600 text-white'
+					: 'bg-gray-700 text-gray-300 hover:bg-gray-600',
+			]}
+			data-id={playlist.id}
+		>
+			<Icon name={playlist.icon} class="w-4 h-4" />
+			{playlist.name}
+		</button>
+	))}
+</div>
+
+<script>
+	async function setActivePlaylist(playlistId: string) {
+		try {
+			const response = await fetch('/api/playlists/active', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ activePlaylist: playlistId }),
+			});
+
+			if (response.ok) {
+				window.dispatchEvent(new CustomEvent('playlist-changed', { detail: { playlistId } }));
+			}
+		} catch (e) {
+			console.error('Failed to set active playlist:', e);
+		}
+	}
+
+	document.querySelectorAll('.playlist-btn').forEach((btn) => {
+		btn.addEventListener('click', () => {
+			const id = (btn as HTMLElement).dataset.id;
+			if (id) {
+				setActivePlaylist(id);
+			}
+		});
+	});
+</script>
