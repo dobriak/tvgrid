@@ -2,6 +2,8 @@
 
 A lightweight web application for displaying up to four video streams simultaneously in a 2x2 grid layout. Built for desktop users who need to monitor multiple live feeds or video sources at once.
 
+![Play page screenshot](docs/play.png)
+
 ## Features
 
 - **2x2 Video Grid**: Display up to four video streams simultaneously
